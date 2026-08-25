@@ -1,0 +1,66 @@
+# maxkey-mgt（带 IDM 变更通知模块的自建镜像）——固化自原手工 `docker run`
+#
+# 背景：官方 docker-compose.yml 里的 maxkey-mgt 用官方镜像 maxkeytop/maxkey-mgt:latest，
+# 不含 maxkey-notifications 模块。带通知能力的镜像需先自建：
+#
+#     ./gradlew :maxkey-webs:maxkey-web-mgt:bootJar
+#     scripts/build-patched-mgt-image.sh        # 产出 maxkey-mgt:notify-20260825
+#
+# 用法（替换官方 maxkey-mgt 服务定义）：
+#     docker compose -f docker-compose.yml \
+#                    -f docker-compose.override.yml \
+#                    -f docker-compose.notify.yml up -d
+#
+# ⚠️ 前置依赖（compose 无法表达的手工步骤，缺了必挂）：
+#   infra-kafka 属于 dev-infra 项目（~/dev-infra），默认只在 dev-infra 网络。
+#   必须把它接入本项目网络并加 kafka 别名，否则 mgt 侧 producer 报 UnknownHostException：
+#
+#     docker network connect --alias kafka --alias infra-kafka docker_maxkey.top infra-kafka
+#
+#   验证：docker exec maxkey-mgt getent hosts infra-kafka   # 应返回 IP
+#   注意：接入后若 producer 已启动，需 restart maxkey-mgt 让 DNS 重新解析。
+
+services:
+  maxkey-mgt:
+    # 覆盖官方镜像为自建镜像；!reset 清掉官方的 platform: linux/amd64
+    # （自建镜像基于本地已拉取层，无需 qemu 模拟）
+    image: maxkey-mgt:notify-20260825
+    platform: !reset null
+    container_name: maxkey-mgt
+    hostname: maxkey-mgt
+    restart: unless-stopped
+    ports: !override
+      - "9526:9526"
+    environment:
+      DATABASE_HOST: maxkey-mysql
+      DATABASE_PORT: "3306"
+      DATABASE_NAME: maxkey
+      DATABASE_USER: root
+      DATABASE_PWD: maxkey
+      LOGIN_CAS_SERVER: http://maxkey-nginx/sign/authz/cas
+      TZ: Asia/Shanghai
+      JAVA_OPTS: "-Xms256m -Xmx2048m -Djava.security.egd=file:/dev/./urandom"
+      # 主体变更通知配置（原 docker run 的 SPRING_APPLICATION_JSON，展开为 YAML 可读形式）
+      #   tenant-mappings  MaxKey instId → PP tenantId 映射（1=默认实例）
+      #   test-endpoint    暴露 /maxkey-mgt-api/notification-test/* 便于联调，生产须关
+      #   outbox           事务性 outbox：写库与投递解耦，失败按 backoff 重试
+      SPRING_APPLICATION_JSON: >-
+        {"maxkey":{"notification":{"subject-change":{
+          "enabled":true,
+          "test-endpoint":true,
+          "tenant-mappings":"1=erp-tenant",
+          "default-tenant-id":"erp-tenant",
+          "event-types":"USER,GROUP_MEMBER,GROUP,ROLE,ROLE_MEMBER,ORGANIZATION",
+          "kafka":{
+            "bootstrap-servers":"infra-kafka:9092",
+            "topic":"maxkey.idm.entity-changed",
+            "acks":"1",
+            "request-timeout-ms":5000
+          },
+          "outbox":{
+            "batch-size":20,
+            "poll-interval-ms":1000,
+            "max-retries":20,
+            "backoff-base-ms":1000
+          }
+        }}}}

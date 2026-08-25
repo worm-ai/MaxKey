@@ -1,0 +1,13 @@
+# 基于官方 maxkey-mgt 镜像，仅替换 fat jar 为我们带 notification 模块的版本
+# 注意：官方 latest 在 arm64 下 manifest 不匹配，改用本地已拉取的镜像
+FROM maxkeytop/maxkey-mgt:latest AS base
+# arm64 平台可能用 qemu 模拟 amd64，直接用本地已有镜像层
+FROM scratch
+COPY --from=base / /
+
+# 用本地编译的新 jar 替换官方 jar
+# 构建前需执行 ./gradlew :maxkey-webs:maxkey-web-mgt:bootJar
+COPY maxkey-webs/maxkey-web-mgt/build/libs/maxkey-mgt-boot-*.jar /maxkey-mgt/maxkey-mgt-boot.jar
+
+# 启动命令沿用官方镜像（sleep 60; java -jar maxkey-mgt-boot.jar $JAVA_OPTS）
+CMD ["/bin/sh", "-c", "sleep 60; java -jar maxkey-mgt-boot.jar $JAVA_OPTS"]
