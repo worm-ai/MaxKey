@@ -57,3 +57,9 @@ maxkey-web-frontend/maxkey-web-app/dist
 **/out/*
 /.sonarlint
 **/**/package-lock.json
+
+# ---- worm fork 本地开发产物（勿提交）----
+# MySQL 容器数据卷（264M，docker-compose 挂载点）
+deployment/docker/docker-mysql/data/
+# codegraph 代码索引缓存（88M）
+.codegraph/

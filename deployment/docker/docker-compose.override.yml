@@ -1,0 +1,12 @@
+# 本地部署覆盖（不修改官方 docker-compose.yml）：
+# 1) maxkey-nginx 官方映射 :80 与全局网关 infra-gateway (dev-infra :80) 冲突，改到 8088。
+#    `!override` 标签 = 替换合并（compose 默认对列表是追加合并，ports 会叠加导致仍绑 80）。
+# 2) 本地演示环境关闭登录验证码（生产勿关，仅便于自动化/演示）。
+services:
+  maxkey-nginx:
+    ports: !override
+      - "8088:80"
+
+  maxkey:
+    environment:
+      MAXKEY_LOGIN_CAPTCHA: "false"
