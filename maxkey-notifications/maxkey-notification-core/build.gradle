@@ -1,0 +1,8 @@
+description = 'maxkey-notification-core'
+// IDM 变更通知通用内核：事件模型 + SPI + 异步分发器。
+// 零 MaxKey 业务依赖，未来整体上提 framework 层。
+
+dependencies {
+    // SLF4J 是 MaxKey 全局已有的日志门面，沿用即可
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+}

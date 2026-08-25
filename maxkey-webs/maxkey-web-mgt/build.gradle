@@ -38,6 +38,15 @@ dependencies {
 	
 	implementation project(":maxkey-entity")
 	implementation project(":maxkey-persistence")
+
+	// 主体变更通知模块（阶段 1 最小闭环，挂 persistence 层 AOP）
+	implementation project(":maxkey-notifications:maxkey-notification-idm")
+	implementation project(":maxkey-notifications:maxkey-notification-webhook")
+	implementation project(":maxkey-notifications:maxkey-notification-core")
+	// Kafka sink 需要直接进 web-mgt 的 runtimeClasspath（bootJar 打包）
+	implementation project(":maxkey-notifications:maxkey-notification-kafka")
+	implementation 'org.apache.kafka:kafka-clients:3.9.0'
+	
 	
 	implementation project(":maxkey-starter:maxkey-starter-captcha")
    	implementation project(":maxkey-starter:maxkey-starter-ip2location")

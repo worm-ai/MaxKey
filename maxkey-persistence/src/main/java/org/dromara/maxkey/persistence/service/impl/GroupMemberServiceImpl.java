@@ -29,10 +29,57 @@ import org.dromara.mybatis.jpa.service.impl.JpaServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class GroupMemberServiceImpl  extends JpaServiceImpl<GroupMemberMapper,GroupMember,String> implements GroupMemberService{
     static final  Logger _logger = LoggerFactory.getLogger(GroupMemberServiceImpl.class);
+
+    /**
+     * Spring 应用事件发布器（Spring 自带）。
+     *
+     * <p>所有 IDM 写操作通过此发布器发领域事件，由消费方（如 notification 模块）
+     * 以 {@code @EventListener} 方式订阅。这是标准的解耦机制：
+     * persistence 层不依赖 notification 模块、不依赖任何下游系统；
+     * notification 模块存在则自动订阅、不存在则事件无人消费、对业务零影响。
+     *
+     * <p>未来上提 framework 层时，这套事件机制本身就是通用能力的一部分。
+     */
+    @Autowired
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
+    /**
+     * 重写父类 insert：成功后发布领域事件。
+     *
+     * <p>加上 @Transactional 确保有事务上下文，
+     * TransactionalEventListener(BEFORE_COMMIT) 才能在事务提交前把事件写入 outbox 表，
+     * 实现"业务数据 + outbox 记录"原子提交。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean insert(GroupMember groupMember) {
+        boolean success = super.insert(groupMember);
+        if (success && groupMember != null && isUserMember(groupMember.getType())) {
+            try {
+                eventPublisher.publishEvent(new org.dromara.maxkey.persistence.event.IdmEntityChangeEvent(
+                        this, "GROUP_MEMBER", groupMember.getMemberId(),
+                        "UPDATE", groupMember.getInstId()));
+            } catch (RuntimeException eventFailure) {
+                // 事件发布失败绝不能影响业务写结果
+                _logger.error("failed to publish group member insert event: memberId={}",
+                        groupMember.getMemberId(), eventFailure);
+            }
+        }
+        return success;
+    }
+
+    private static boolean isUserMember(String type) {
+        return type == null || type.trim().isEmpty()
+                || "USER".equalsIgnoreCase(type.trim())
+                || "USER-DYNAMIC".equalsIgnoreCase(type.trim());
+    }
 
     @Override
     public int addDynamicMember(Groups dynamicGroup) {

@@ -58,6 +58,12 @@ include ('maxkey-synchronizers:maxkey-synchronizer-jdbc')
 include ('maxkey-synchronizers:maxkey-synchronizer-ldap')
 include ('maxkey-synchronizers:maxkey-synchronizer-workweixin')
 
+//notifications: IDM 变更通知模块（阶段 1 最小闭环，未来上提 framework 层）
+include ('maxkey-notifications:maxkey-notification-core')
+include ('maxkey-notifications:maxkey-notification-webhook')
+include ('maxkey-notifications:maxkey-notification-kafka')
+include ('maxkey-notifications:maxkey-notification-idm')
+
 //Protocol
 include ('maxkey-protocols:maxkey-protocol-authorize')
 include ('maxkey-protocols:maxkey-protocol-cas')

@@ -1,0 +1,10 @@
+description = 'maxkey-notification-kafka'
+// Kafka 通知 sink：将主体变更事件发布到 Kafka topic。
+// 领域事件总线模式的标准实现，下游系统订阅 topic 即可。
+
+dependencies {
+    implementation project(':maxkey-notifications:maxkey-notification-core')
+    implementation 'org.apache.kafka:kafka-clients:3.9.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+}

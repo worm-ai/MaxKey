@@ -1,0 +1,18 @@
+description = 'maxkey-notification-idm'
+// MaxKey IDM 接入层：AOP 切面挂 persistence 层，感知组成员变更并发布事件。
+// 这是整个 notification 模块中唯一与 MaxKey 业务类型耦合的部分，
+// 上提 framework 时，这一层留在 MaxKey 作为接入适配。
+
+dependencies {
+    implementation project(':maxkey-notifications:maxkey-notification-core')
+    implementation project(':maxkey-notifications:maxkey-notification-webhook')
+    implementation project(':maxkey-notifications:maxkey-notification-kafka')
+    implementation project(':maxkey-persistence')     // IdmEntityChangeEvent + GroupMemberService
+    implementation project(':maxkey-entity')        // GroupMember 实体
+    implementation project(':maxkey-commons:maxkey-common')
+
+    // Spring 基础（Spring Boot 自带，版本继承全局）
+    implementation 'org.springframework:spring-context:6.2.0'
+    implementation 'org.springframework:spring-tx:6.2.0'
+    implementation 'org.springframework:spring-jdbc:6.2.0'
+}

@@ -1,0 +1,8 @@
+description = 'maxkey-notification-webhook'
+// 通用 HTTP webhook sink：把变更事件 POST 给下游系统。
+// 用 JDK 11+ 自带的 java.net.http.HttpClient，不引入额外 HTTP 客户端依赖。
+
+dependencies {
+    implementation project(':maxkey-notifications:maxkey-notification-core')
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+}
